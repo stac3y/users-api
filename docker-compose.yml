@@ -1,0 +1,11 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: 'postgres:11'
+    environment:
+      - POSTGRES_USER=${PSQL_USERNAME}
+      - POSTGRES_PASSWORD=${PSQL_PASSWORD}
+    ports:
+      - '${PSQL_PORT}:5432'
+    restart: always
