@@ -15,4 +15,8 @@ export class UserModel extends Model {
     @AllowNull(false)
     @Column(DataType.CHAR(64))
     password: string
+
+    @AllowNull(false)
+    @Column(DataType.CHAR(20))
+    name: string
 }

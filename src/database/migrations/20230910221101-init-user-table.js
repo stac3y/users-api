@@ -25,6 +25,10 @@ module.exports = {
                 type: Sequelize.CHAR(64),
                 allowNull: false,
             },
+            name: {
+                type: Sequelize.CHAR(20),
+                allowNull: false,
+            },
             createdAt: {
                 type: Sequelize.DATE,
                 allowNull: false,
