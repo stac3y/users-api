@@ -12,22 +12,22 @@ module.exports = {
                 primaryKey: true,
             },
             phone: {
-                type: Sequelize.CHAR(12),
-                allowNull: false,
+                type: Sequelize.STRING,
+                allowNull: true,
                 unique: true,
             },
             email: {
-                type: Sequelize.CHAR(256),
-                allowNull: false,
+                type: Sequelize.STRING,
+                allowNull: true,
                 unique: true,
             },
             password: {
-                type: Sequelize.CHAR(64),
+                type: Sequelize.STRING,
                 allowNull: false,
             },
             name: {
-                type: Sequelize.CHAR(20),
-                allowNull: false,
+                type: Sequelize.STRING,
+                allowNull: true,
             },
             createdAt: {
                 type: Sequelize.DATE,

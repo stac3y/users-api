@@ -1,12 +1,13 @@
-import { UserModel } from '../users/user.model'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 import { Sequelize } from 'sequelize-typescript'
+import { User } from '../users/entities/user.entity'
+import { SEQUELIZE } from '../common/constants'
 
 export const databaseProviders = [
     {
         imports: [ConfigModule],
         inject: [ConfigService],
-        provide: 'SEQUELIZE',
+        provide: SEQUELIZE,
         useFactory: async (config: ConfigService) => {
             const sequelize = new Sequelize({
                 database: config.get<string>('PSQL_DATABASE'),
@@ -16,7 +17,7 @@ export const databaseProviders = [
                 host: config.get<string>('PSQL_HOST'),
                 port: config.get<number>('PSQL_PORT'),
             })
-            sequelize.addModels([UserModel])
+            sequelize.addModels([User])
             return sequelize
         },
     },
