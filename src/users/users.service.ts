@@ -1,4 +1,5 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common'
+import { InternalServerErrorException } from '@nestjs/common/exceptions/internal-server-error.exception'
 import * as bcrypt from 'bcrypt'
 import { Op } from 'sequelize'
 
@@ -7,6 +8,7 @@ import { SortEnum } from '../common/enums/sort.enum'
 
 import { CreateUserDto, GetUsersDto, UpdateUserDto, UserDto } from './dto'
 import { User } from './entities/user.entity'
+import { ErrorCode } from './types/error.presenter'
 
 @Injectable()
 export class UsersService {
@@ -14,21 +16,32 @@ export class UsersService {
     async createUser(dto: CreateUserDto): Promise<UserDto> {
         const { email, phone, password } = dto
         if (!email && !phone) {
-            throw new BadRequestException('Email or phone must be defined')
+            throw new BadRequestException({
+                code: ErrorCode.INVALID_PARAMETERS,
+                message: 'Email or phone must be defined',
+            })
         }
 
         const hashedPassword = await this._hashPassword(password)
-        return await this._userRepository.create<User>({ ...dto, password: hashedPassword })
+        try {
+            const user = await this._userRepository.create<User>({ ...dto, password: hashedPassword })
+            return new UserDto(user)
+        } catch (err) {
+            throw new InternalServerErrorException({
+                code: ErrorCode.USER_WAS_NOT_SAVE,
+                message: `User wasn't save. Probably the phone number or email is not unique`,
+            })
+        }
     }
 
     async getUserById(userId: string): Promise<UserDto> {
         const user = await this._userRepository.findOne<User>({ where: { id: userId, deletedAt: null } })
 
         if (!user) {
-            throw new NotFoundException('User not found!')
+            throw new NotFoundException({ code: ErrorCode.USER_NOT_FOUND, message: 'User not found' })
         }
 
-        return user
+        return new UserDto(user)
     }
 
     async getUsers(dto: GetUsersDto): Promise<UserDto[]> {
@@ -48,7 +61,7 @@ export class UsersService {
             query.push({ phone })
         }
 
-        return await this._userRepository.findAll<User>({
+        const users = await this._userRepository.findAll<User>({
             where: {
                 [Op.and]: [...query],
             },
@@ -56,6 +69,8 @@ export class UsersService {
             offset: offset ?? 0,
             order: [['id', sort ?? SortEnum.DESC]],
         })
+
+        return users.map(user => new UserDto(user))
     }
 
     async updateUser(userId: string, dto: UpdateUserDto): Promise<UserDto> {
@@ -65,9 +80,22 @@ export class UsersService {
             dto.password = await this._hashPassword(password)
         }
 
-        const [affectedCount] = await this._userRepository.update<User>(dto, { where: { id: userId, deletedAt: null } })
-        if (!affectedCount) {
-            throw new NotFoundException('User not found!')
+        let updatedCount: number
+
+        try {
+            const [affectedCount] = await this._userRepository.update<User>(dto, {
+                where: { id: userId, deletedAt: null },
+            })
+            updatedCount = affectedCount
+        } catch (err) {
+            throw new InternalServerErrorException({
+                code: ErrorCode.USER_WAS_NOT_SAVE,
+                message: `User wasn't save. Probably the phone number or email is not unique`,
+            })
+        }
+
+        if (!updatedCount) {
+            throw new NotFoundException({ code: ErrorCode.USER_NOT_FOUND, message: 'User not found' })
         }
 
         return await this.getUserById(userId)
