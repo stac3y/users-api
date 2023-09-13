@@ -1,7 +1,7 @@
 {
   "name": "users-api",
   "version": "0.0.1",
-  "description": "",
+  "description": "App created for CRUD operations with users.",
   "author": "",
   "private": true,
   "license": "UNLICENSED",
