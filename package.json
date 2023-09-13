@@ -20,7 +20,10 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "migration:generate": "yarn run sequelize-cli migration:generate --name",
     "migration:up": "set -a && . ./.env && set +a && yarn run sequelize-cli db:migrate",
-    "migration:down": "set -a && . ./.env && set +a && yarn run sequelize-cli db:migrate:undo"
+    "migration:down": "set -a && . ./.env && set +a && yarn run sequelize-cli db:migrate:undo",
+    "seed:generate": "yarn run sequelize-cli seed:generate --name",
+    "seed:up": "set -a && . ./.env && set +a && yarn run sequelize-cli db:seed:all",
+    "seed:down": "set -a && . ./.env && set +a && yarn run sequelize-cli db:seed:undo"
   },
   "dependencies": {
     "@nestjs/common": "^9.0.0",
