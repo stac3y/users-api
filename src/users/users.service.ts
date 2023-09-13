@@ -1,14 +1,15 @@
-import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common'
+import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common'
 import { InternalServerErrorException } from '@nestjs/common/exceptions/internal-server-error.exception'
 import * as bcrypt from 'bcrypt'
 import { Op } from 'sequelize'
 
+import { SignInDto } from '../auth/dto'
 import { USER_REPOSITORY } from '../common/constants'
 import { SortEnum } from '../common/enums/sort.enum'
+import { ErrorCode } from '../common/types/error.presenter'
 
 import { CreateUserDto, GetUsersDto, UpdateUserDto, UserDto } from './dto'
 import { User } from './entities/user.entity'
-import { ErrorCode } from './types/error.presenter'
 
 @Injectable()
 export class UsersService {
@@ -73,7 +74,37 @@ export class UsersService {
         return users.map(user => new UserDto(user))
     }
 
-    async updateUser(userId: string, dto: UpdateUserDto): Promise<UserDto> {
+    async getUserForSignIn(dto: SignInDto): Promise<User> {
+        const { email, phone } = dto
+        const query = []
+        query.push({ deletedAt: null })
+
+        if (email) {
+            query.push({ email })
+        }
+
+        if (phone) {
+            query.push({ phone })
+        }
+
+        const user = await this._userRepository.findOne<User>({
+            where: {
+                [Op.and]: [...query],
+            },
+        })
+
+        if (!user) {
+            throw new NotFoundException({ code: ErrorCode.USER_NOT_FOUND, message: 'User not found' })
+        }
+
+        return user
+    }
+
+    async updateUser(userId: string, dto: UpdateUserDto, currentUserId: string): Promise<UserDto> {
+        if (userId !== currentUserId) {
+            throw new ForbiddenException({ code: ErrorCode.FORBIDDEN, message: 'User can update only his own data' })
+        }
+
         const { password } = dto
 
         if (password) {
@@ -101,7 +132,11 @@ export class UsersService {
         return await this.getUserById(userId)
     }
 
-    async deleteUser(userId: string): Promise<boolean> {
+    async deleteUser(userId: string, currentUserId: string): Promise<boolean> {
+        if (userId !== currentUserId) {
+            throw new ForbiddenException({ code: ErrorCode.FORBIDDEN, message: 'User can delete only his own data' })
+        }
+
         const result = await this._userRepository.destroy<User>({ where: { id: userId } })
         return !!result
     }
@@ -109,10 +144,5 @@ export class UsersService {
     private async _hashPassword(password: string): Promise<string> {
         const hash = await bcrypt.hash(password, 10)
         return hash
-    }
-
-    private async _comparePassword(enteredPassword: string, dbPassword: string): Promise<boolean> {
-        const match = await bcrypt.compare(enteredPassword, dbPassword)
-        return match
     }
 }

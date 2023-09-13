@@ -5,11 +5,8 @@ import { Logger, ValidationPipe } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { NestFactory } from '@nestjs/core'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
-import { config } from 'dotenv'
 
 import { AppModule } from './app.module'
-
-config({ path: './.env' })
 
 const packageJson = JSON.parse(readFileSync(resolve(__dirname, '..', 'package.json')).toString())
 
@@ -30,6 +27,7 @@ async function bootstrap() {
             .setTitle(packageJson.name)
             .setDescription(packageJson.description)
             .setVersion(packageJson.version)
+            .addBearerAuth()
             .build(),
     )
     SwaggerModule.setup(swaggerPath, app, apiDocument, {

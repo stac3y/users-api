@@ -1,18 +1,19 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common'
-import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger'
+import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards, Request } from '@nestjs/common'
+import { AuthGuard } from '@nestjs/passport'
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger'
 
 import { SortEnum } from '../common/enums/sort.enum'
+import { ErrorPresenter } from '../common/types/error.presenter'
 
 import { CreateUserDto, UpdateUserDto } from './dto'
 import { UserDto } from './dto'
-import { ErrorPresenter } from './types/error.presenter'
 import { UserPresenter } from './types/user.presenter'
 import { UsersService } from './users.service'
 
 @ApiTags('Users')
 @Controller('/users')
 export class UsersController {
-    constructor(private readonly userService: UsersService) {}
+    constructor(private readonly _userService: UsersService) {}
 
     @ApiOperation({
         summary: 'Create user',
@@ -21,7 +22,7 @@ export class UsersController {
     @ApiResponse({ status: 400, type: ErrorPresenter })
     @Post()
     async createUser(@Body() dto: CreateUserDto): Promise<UserDto> {
-        return await this.userService.createUser(dto)
+        return await this._userService.createUser(dto)
     }
 
     @ApiOperation({
@@ -43,7 +44,7 @@ export class UsersController {
         @Query('limit') limit?: number,
         @Query('sort') sort?: SortEnum,
     ): Promise<UserDto[]> {
-        return await this.userService.getUsers({ email, phone, name, offset, limit, sort })
+        return await this._userService.getUsers({ email, phone, name, offset, limit, sort })
     }
 
     @ApiOperation({
@@ -53,25 +54,31 @@ export class UsersController {
     @ApiResponse({ status: 404, type: ErrorPresenter })
     @Get(':userId')
     async getUser(@Param('userId') userId: string): Promise<UserDto> {
-        return await this.userService.getUserById(userId)
+        return await this._userService.getUserById(userId)
     }
 
+    @UseGuards(AuthGuard('jwt'))
+    @ApiBearerAuth()
     @ApiOperation({
         summary: 'Update user by id',
     })
     @ApiResponse({ status: 200, type: UserPresenter })
+    @ApiResponse({ status: 403, type: ErrorPresenter })
     @ApiResponse({ status: 404, type: ErrorPresenter })
     @Put(':userId')
-    async updateUser(@Param('userId') userId: string, @Body() dto: UpdateUserDto): Promise<UserDto> {
-        return await this.userService.updateUser(userId, dto)
+    async updateUser(@Param('userId') userId: string, @Body() dto: UpdateUserDto, @Request() req): Promise<UserDto> {
+        return await this._userService.updateUser(userId, dto, req.user.sub.toString())
     }
 
+    @UseGuards(AuthGuard('jwt'))
+    @ApiBearerAuth()
     @ApiOperation({
         summary: 'Delete user by id',
     })
     @ApiResponse({ status: 200, type: Boolean })
+    @ApiResponse({ status: 403, type: ErrorPresenter })
     @Delete(':userId')
-    async deleteUser(@Param('userId') userId: string): Promise<boolean> {
-        return await this.userService.deleteUser(userId)
+    async deleteUser(@Param('userId') userId: string, @Request() req): Promise<boolean> {
+        return await this._userService.deleteUser(userId, req.user.sub.toString())
     }
 }
